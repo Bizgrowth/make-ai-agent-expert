@@ -63,4 +63,12 @@
 ## Summary & readiness
 A web-form lead is scored by an AI against a standard B2B rubric and routed: hot leads create a HubSpot task and a Slack alert, warm and cold leads are logged quietly, and uncertain results go to you for review. Everything is tagged DEMO and built inactive in your single Make team. **Ready for design? Yes**, once the open questions above are answered (the Slack channel and LLM choice are needed before build, not design).
 
-**Gate 1 — Owner approval:** [ ] approved on ____
+**Gate 1 — Owner approval:** [x] approved on 2026-10-17
+
+### Owner decisions at Gate 1
+- Warm/Cold: HubSpot contact with DEMO tag only, no alert (confirmed).
+- Slack channel for hot-lead alerts and review items: `#leads`.
+- LLM: Claude. Owner adds the API key in Make (never in chat).
+- DEMO property in HubSpot: unknown. Architect/builder must verify before relying on it.
+- Loom walkthrough: no (do not create `loom-script.md`).
+- Scenario is new and separate; "Showcase Hub – Lead, Inbox, Scorecard (router)" is not modified.
