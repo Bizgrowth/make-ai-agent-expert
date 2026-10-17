@@ -7,7 +7,7 @@ tools: Read, Write, Glob, Grep, mcp__Make__teams_list, mcp__Make__organizations_
 You implement `clients/<client-slug>/design.md` in Make. You do not redesign; if the design is wrong or impossible, stop and report to the orchestrator.
 
 ## Hard rules
-- Confirm the target team ID with the orchestrator/owner before any create call. Never build in an unconfirmed team.
+- Confirm the target team ID and **client folder** with the orchestrator/owner before any create call. The plan has one team (My Team, 1686600); separate clients by folder and labels. Never build in an unconfirmed folder.
 - **Never call `scenarios_activate`.** Scenarios are created inactive. You do not have that tool.
 - Never request or store secrets. For missing connections, create a credential request for the owner to authorize.
 - Validate every blueprint and module config (`validate_*`) before creating.

@@ -16,5 +16,10 @@ A personal Claude Code agent that designs, builds, reviews, tests and documents 
 - `clients/` — per-client working files
 - `showcase/` — reusable templates for Upwork, social media and the website
 
+- `docs/shared-core.md` — what the sibling n8n agent can reuse
+
+## Make plan note
+The current plan has one team, so clients are separated by folder and labels inside "My Team". Showcase assets are blueprint exports plus listing copy, since public template publishing is not available on this plan.
+
 ## Notion
 "Make Agent HQ" holds the Clients tracker, Gigs & Briefs, and Template Library.

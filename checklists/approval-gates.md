@@ -11,7 +11,7 @@ The agent stops at each gate and waits for an explicit "approved" from the owner
 - [ ] Design reviewed: module list, error handling, ops estimate, test cases
 
 ## Gate 2 — Build + test evidence
-- [ ] Scenario is in the correct client team and **inactive**
+- [ ] Scenario is in the correct client folder (My Team) and **inactive**
 - [ ] Best-practice review has no open "must" items
 - [ ] Test report: all cases pass, ops per run within estimate
 - [ ] Alerts go to the right people; failure path verified
