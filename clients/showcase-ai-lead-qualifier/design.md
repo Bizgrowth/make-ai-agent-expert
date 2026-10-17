@@ -372,3 +372,8 @@ Assumed mix for 100 runs: 20 invalid or duplicate, 15 junk, 20 hot, 35 warm/cold
 ---
 
 **Gate 1b - Owner approval:** [ ] approved  [ ] changes requested
+
+## Gate 1b — Owner approval
+[x] Approved on 2026-10-17: all recommended options (scoring 5x20 with cut-offs 70/40, confidence threshold 0.70, HubSpot property approach A, claim-first dedupe A, Claude "Create a Prompt" with owner's own API key A, save-then-review on AI outage A, no-consent and junk logged only, review leads saved unscored plus Slack review, webhook key tested from a form tool/backend, Make error email confirmed on by owner).
+
+**Build is blocked until:** (1) owner adds the Anthropic connection in Make, and (2) HubSpot properties exist (builder checks first; owner creates by hand if the connection lacks schema scope). Org ID for module verification: 6032089.
