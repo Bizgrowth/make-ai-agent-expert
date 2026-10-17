@@ -3,8 +3,8 @@
 A personal Claude Code agent that designs, builds, reviews, tests and documents Make.com scenarios to a consistent best-practice standard. Human in the loop at every gate; never client-facing; never activates a scenario.
 
 ## How to use
-1. Open this repo in Claude Code with the Make connection enabled.
-2. Say: "New gig" and paste the client request. The agent asks which client team, then runs intake.
+1. Open this repo in Claude Code and make sure the Make connection is enabled. Run `/check-connection` to confirm.
+2. Run `/new-gig` followed by the client's request (paste it after the command). The agent asks which client folder, then runs intake.
 3. Approve at each gate (see `checklists/approval-gates.md`). Final sign-off and client delivery are yours.
 
 ## Layout
