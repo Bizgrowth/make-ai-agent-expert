@@ -4,8 +4,8 @@ Built from `templates/measurement-plan.md`. Demo project, synthetic data. Fill t
 
 ## Setup notes specific to this build
 - Model: Claude Haiku 4.5 (owner decision, 2026-10-18). Listed rates at the time of writing: $1 per million input tokens, $5 per million output tokens (https://platform.claude.com/docs/en/about-claude/pricing). Re-check the live page before publishing a cost.
-- Cost per run needs token counts from the Claude module. Fix round 2 asks the builder to log them in the lead-log row; if that was not possible, read the usage from the execution detail of each test run instead.
-- Time measurement uses the time the test sender puts in `submitted_at`, compared with the Slack message time or HubSpot record time. Use the same clock source for all test leads.
+- Cost per run needs token counts from the Claude module. The builder could not add token fields to the lead log (tools cannot edit a data structure), so read `usage.input_tokens` and `usage.output_tokens` from module 6 (and module 8 for a repair call) in the Make run history of each test run, and cross-check the total against the Anthropic console. Optional: the owner can add tokens_in, tokens_out and completed_at to the log structure by hand, then the builder connects them.
+- Time measurement uses the time the test sender puts in `submitted_at`, compared with the Slack message time or HubSpot record time, or the total run time in the Make run history. The log row keeps `created_at` (set about a second after arrival) but no completion time. Use the same clock source for all test leads.
 - Expected operations per run (design estimate, to confirm): invalid or duplicate 3; junk 9; warm or cold 10; review 11; hot 12; a repair call adds 2.
 - Make credits: 1 operation was logged as 1 credit in the existing scenario; confirm per path from the execution log.
 
