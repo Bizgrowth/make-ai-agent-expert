@@ -5,7 +5,8 @@
 **Reviewer:** best-practice-reviewer (read-only; nothing in Make was changed). Date: 2026-10-18.
 **Method:** read the live blueprint via `scenarios_get`, traced every module, router, filter and handler, counted parentheses and logic in the formulas by hand, and listed connections. Nothing was run, so runtime behaviour (formula results, field names, error text) is "not proven" until QA.
 
-## Verdict: SEND BACK TO BUILDER (one small fix round)
+## Verdict (first review): SEND BACK TO BUILDER (one small fix round)
+**Superseded by the "Re-review after fix round 1" section at the end of this file: Approve for QA once owner steps are done.**
 
 Reason: one **[must]** item fails (failure alert has no usable link to the scenario or execution) and two [must] items depend on owner steps that are not done. The design is otherwise followed closely: the flow, routers, decision rules, thresholds, error handlers and ops count match the approved design. The list below is short and mostly quick edits. After it, this can go to QA.
 
@@ -122,5 +123,81 @@ Reason: one **[must]** item fails (failure alert has no usable link to the scena
 ## Owner actions still open
 Create the webhook API key and attach `lead_webhook_v1`; set `portal_id`; invite the Slack app to `#leads`; set the Anthropic monthly spend limit; confirm Make error e-mail is on; open the scenario once in the editor, confirm no warning icons, pick the Claude model from the dropdown if offered.
 
-## Sign-off
+## Sign-off (first review)
 Reviewer does not activate or modify the scenario. Return to builder for M1, M3(b) and the Fix items F1, F7, F10 to F16 as you see fit, then resubmit for a quick re-check before QA. M2, M3(a) and M4 are owner steps.
+
+---
+
+# Re-review after fix round 1
+
+**Date:** 2026-10-18. **Method:** pulled the live blueprint again (`scenarios_get` 6677285, last edit 2026-10-18T05:04, still inactive, `isActive: false`), compared each item with the build-log "Fix round 1" table, and re-traced modules 2, 52, 53, 11, routers 12 and 16 and every Slack alert by hand. Nothing in Make was changed. Formulas are still unproven at runtime; "Fixed" below means the blueprint now contains the correct change.
+
+## Verdict: APPROVE FOR QA once the owner steps below are done
+
+No builder rework is needed to start QA. Every builder-side [must] is closed except the dollar cost figure (M3b), which is a documentation item and does not block testing. It must be closed before the handoff document and before activation. Three small new notes (N1 to N3) are optional.
+
+## Status of every earlier item
+
+| # | Status | Evidence from the live blueprint |
+|---|---|---|
+| M1 | **Fixed** | Failure alerts in modules 33, 36, 42, 47 all end with `logs: https://us2.make.com/1686600/scenarios/6677285/logs` and carry the module name. No execution ID (not invented, correct). Owner still to check the `us2` host and optionally the mapping panel for an execution ID. |
+| M2 | **Still open (owner)** | Not visible in the blueprint. Owner creates the API key on webhook 2949839 and attaches `lead_webhook_v1`. Needed before QA of the real entry and before activation. |
+| M3a | **Still open (owner)** | Anthropic monthly spend limit. |
+| M3b | **Still open (builder, non-blocking for QA)** | Build log still says cost per run "not looked up". Record a dollar figure for Haiku 4.5 (about 600 in, 200 out tokens) before handoff. The builder had no price source; the owner or a session with web access can supply it. |
+| M4 | **Still open (owner)** | `portal_id` in module 2 is still `SET_HUBSPOT_PORTAL_ID`. Needed before QA checks Slack links. |
+| F1 | **Fixed (needs run)** | `ifempty` is gone. Missing is `length(toString(x)) = 0` (modules 52, 53). A zero gives `toString(0)` = "0", length 1, so zero stays valid. Negative and over-20 are explicit comparisons (module 53 `flag_out_of_range`). QA case 3 proves it. |
+| F2 | **Still open (QA verify)** | `14.id` still used in modules 17, 18, 19. |
+| F3 | **Still open (QA verify)** | `hs_task_assigned_contacts` = `14.id`, `hs_timestamp` = `addDays(now; 1)` unchanged. |
+| F4 | **Still open (QA verify)** | Filters on module 5 handler unchanged ("duplicate" in message or name). Note: the "Other error" alert now shows only `error.name`, so QA should record the real duplicate error name from case 8. |
+| F5 | **Still open (QA verify)** | Ignore inside each alert (34, 37, 43, 48) unchanged. Cases 16 and 18. |
+| F6 | **Still open (QA verify, builder says tools cannot fix)** | Module 14 still maps blank first/last name, job title, company, and `""` for the AI fields on review leads (`switch(...; "")`). Cases 4 and 9 decide whether a second route is needed. Accepted as a QA item. |
+| F7 | **Fixed** | Split into 52 (`score_final`, `flag_ai_fallback`, `flag_criterion_missing`), 53 (`tier_final`, six rule flags) and 11 (short `decision_code`). Module 11 keeps the same output names, so routers 12 and 16, module 13, 14, 15, 17, 18, 19 are unaffected. Each module is short enough to read. Module 11 still has no scenario note; optional. |
+| F8 | **Still open (owner/QA)** | `2.model` = typed `claude-haiku-4-5`. |
+| F9 | **Still open (QA verify)** | `6.content[1].text` unchanged. Model module name now recorded in build-log deviation 10 (fixed). |
+| F10 | **Fixed** | All four alerts show module name, `error.name` and the logs link only. No `error.message`, no lead fields. |
+| F11 | **Fixed (pattern support unproven)** | Module 2 company, role_title, company_size, budget_range, timeline, source and message all run `replace(...; /[\x00-\x1f\x7f]/g; " ")`, then strip `<` and `>`, then truncate. Company and role_title also strip `@`. QA must confirm that Make accepts the regex form (a newline test in the company field, then check the Claude input in the execution log). If Make takes the pattern as plain text, nothing is stripped and the old gap returns. |
+| F12 | **Fixed** | `consent_ok` = `switch(lower(trim(1.consent)); "true"; true; "yes"; true; "1"; true; "y"; true; "on"; true; false)`. |
+| F13 | **Fixed (needs run)** | `last_name` = `trim(substring(trim(1.name); length(first); length(trim(1.name))))`. "Ann Annabel" gives start 3 and result "Annabel"; one-word name gives empty. Relies on `substring` being zero-based, which matches the other uses; test with two-word, one-word and empty name. |
+| F14 | **Fixed in behaviour (builder's alternative accepted)** | Router 16 route 2 (module 19) now filters `decision_code != hot AND != warm_cold`, so every unexpected code, including empty, goes to the review message. Warm/cold (the only intended quiet case) matches neither route and ends. This catches everything that is not hot and not warm/cold. A literal empty fallback route was not added; acceptable. |
+| F15 | **Fixed** | All 42 module names are now distinct. Break: "Retry later: <what>" (30, 35, 44, 45, 46, 49, 50, 51). Resume: "Fallback to review: ..." (38, 39, 40). Ignore: "Ignore alert failure: ..." (34, 37, 43, 48). |
+| F16 | **Fixed for reason and excerpt; see N1 for company and role** | `reason_clean` (module 11) and the review excerpt (module 19) now remove `@`, `<`, `>`, `://`, `http`, `www`. |
+| F17 | **Still open (optional)** | `#leads` hard-coded in 8 modules. |
+| F18 to F20 | **Still open (notes for the process doc)** | Weak email check, failed-AI draft display, data-store retention and hash. |
+
+## Specific checks requested
+
+| Check | Result | Evidence |
+|---|---|---|
+| Logs link in all failure alerts | **Pass** | Modules 33, 36, 42, 47 contain the same `https://us2.make.com/1686600/scenarios/6677285/logs` link. |
+| Decision rules and order kept after the split | **Pass** | Module 53 `tier_final` = `if(52.score_final >= hot_min; "hot"; if(>= warm_min; "warm"; "cold"))` with `hot_min` 70, `warm_min` 40 from module 2 (hot 70+, warm 40 to 69, cold below 40). Make computes the tier from the criteria sum, not from the model. Module 11 order: (1) any flag sum > 0 = invalid; (2) `injection_suspected` = injection; (3) `spam_or_junk` and confidence >= 0.70 = junk (spam below 0.70 = low_confidence); (4) confidence < 0.70 = low_confidence; (5) tier hot = hot; (6) warm_cold. This is the design order (section 5). `flag_tier_mismatch` recomputes the tier with the same formula, `flag_score_mismatch` compares the model's score with the sum. |
+| Zero-score handling | **Pass** | A cold lead with all zeros and confidence 0.9 raises no flag and becomes warm_cold. The provider-fallback answers (modules 38, 39, 40) are also all zeros but their reason starts "AI fallback", so `flag_ai_fallback` = 1 and they route to review. A genuine zero is never confused with a fallback. Confidence 0 gives `toString(0)` = "0" and is not "missing". |
+| Consent values | **Pass** | true, yes, 1, y, on, case-insensitive and trimmed. Anything else (including empty) is no consent. |
+| Last-name formula | **Pass (needs run)** | See F13. |
+| Router 16 catch-all | **Pass** | See F14. |
+| Unique module names | **Pass** | See F15. |
+| Control characters and links | **Pass for model input and for reason/excerpt**, with N1 | See F11 and F16. |
+| Failure alerts no longer echo lead data | **Pass** | Only module name, `error.name`, logs link. |
+| Operations per run | **Pass for per-path numbers; headline figure slightly high** | Traced module by module (routers are free): invalid or duplicate 3 (modules 1, 2, 4 or 5); junk 9 (1, 2, 5, 6, 7, 52, 53, 11, 13); warm/cold 10 (1, 2, 5, 6, 7, 52, 53, 11, 14, 15); review 11 (same plus 19); hot 12 (same plus 17, 18); repair adds 2 (8, 9). These match the build log. For the assumed 100-run mix (20 / 15 / 20 / 35 / 10 invalid-or-duplicate, junk, hot, warm-cold, review) I get 895 ops, about 9.0 per run (about 900 a month), not 9.5. The builder's 9.5 is a slightly conservative round-up; either is fine for the 10,000 plan. `design.md` section 15 still shows the old 3 / 7 / 8 / 9 / 10 and 7.4 per run; add a note there or in the process doc. |
+
+## New notes from this round
+
+| # | Risk | Note | Change |
+|---|---|---|---|
+| N1 | Low | Company and role_title go into the hot alert (module 18) and the review message (module 19) with `@`, `<`, `>` and control characters removed, but not `://`, `http` or `www`. A lead could put a plain link in the company field and it would appear clickable in `#leads` (previews are off). It can only be the lead's own text, no pings. | In module 2 apply the same `://`, `http`, `www` removals to `company` and `role_title` (note: company is also stored in HubSpot, so better to strip at the Slack message instead). Optional for the demo; list in the process doc if not done. |
+| N2 | Low | `flag_ai_fallback` matches the text "AI fallback" in the model's reason. A lead cannot normally make the model write that, but if it does, the result is invalid and goes to review (safe). | None. Mention in the process doc. |
+| N3 | Info | Modules 52 and 53 are placed above module 11 in the designer, so the layout is not strictly left to right. | Optional: drag into a row. The scenario description does not yet list the ops estimate; optional. |
+
+The integer check still tests the sum only (0.5 + 0.5 passes); the earlier note stands and Parse JSON typing on `lead_score_v1` is the main guard.
+
+## Remaining owner steps (before QA starts)
+1. Webhook 2949839: create the API key (header `x-make-apikey`) and attach data structure `lead_webhook_v1`. Key only in the caller. (M2)
+2. Set `portal_id` in module 2 to the HubSpot portal ID. (M4)
+3. Set the monthly spend limit in the Anthropic console. (M3a)
+4. Invite the Slack app to `#leads`; confirm Make error e-mail is on.
+5. Open the scenario once in the editor: no warning icons, pick the Claude model from the dropdown if offered, check that the `us2` host in the alert link matches your address bar, and optionally look for an execution ID in the mapping panel.
+
+## Before handoff (not blocking QA)
+Record a dollar cost per run for Haiku 4.5 in `build-log.md` (M3b); move the label from `draft` to `qa` when QA begins; update the ops figure in the design or process doc (about 9 to 9.5 per run, 12 on a hot lead).
+
+## QA priorities added by this round
+Case 3 (zeros stay cold, not invalid); a lead with a newline in the company field (regex strip works, F11); a two-word, one-word and empty name (F13); `consent = on` (F12); a duplicate (record the real error name, F4); a company field containing a link (N1); the earlier list (F2, F3, F5, F6, F8, F9, M2).
