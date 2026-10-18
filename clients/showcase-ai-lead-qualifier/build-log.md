@@ -88,3 +88,8 @@ Scenario is inactive. To remove: delete scenario 6677285, then data store 176442
 
 ## Confirmation
 **Scenario 6677285 is INACTIVE. It was not run. No activation was attempted. Scenarios 6483275 and 6476840 were not touched.**
+
+## Cost per run estimate (added by orchestrator, 2026-10-18)
+- Source: Anthropic pricing pages (https://platform.claude.com/docs/en/about-claude/pricing, https://www.anthropic.com/news/claude-haiku-4-5). Claude Haiku 4.5 is listed at $1 per million input tokens and $5 per million output tokens. The docs now call Haiku 4.5 a legacy model and name Haiku 5.5 as the current Haiku, at lower listed rates. Re-check the live page before quoting prices to clients.
+- Assumed tokens per scoring call (not measured): about 800 input (instructions plus lead text capped at 1,000 characters) and up to 400 output (the configured cap). Worst case about $0.003 per call at Haiku 4.5 rates, roughly $0.30 per 100 leads, plus an occasional repair call. Replace with measured token counts from the first test runs.
+- Open decision for the owner: keep Haiku 4.5 as built, or switch to the current Haiku. Not changed without owner approval.
