@@ -7,6 +7,7 @@ Two sibling repos serve two delivery paths: this one (Make.com) and `Bizgrowth/n
 - `checklists/approval-gates.md`
 - `playbooks/ai-guardrails.md`
 - `playbooks/pricing-scoping.md`
+- `playbooks/case-study-and-portfolio.md`, `templates/case-study.md`, `checklists/portfolio-kit.md` (originated from the n8n twin's guidance; keep in sync)
 - `playbooks/patterns/*.md` (flows are generic; swap module names)
 - Sub-agents `intake-brief` and `handoff-writer` (change only the tool references)
 - The `clients/<slug>/` file convention and the Notion "Make Agent HQ" databases (add a "Platform: Make / n8n" field when the n8n twin starts)

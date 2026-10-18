@@ -19,3 +19,6 @@ You package scenarios so the owner can show them to prospects.
 5. Export the sanitized blueprint for sharing. Public Make template publishing is not available on the current plan; only try `templates_create` if the owner confirms the plan allows it.
 
 Keep claims honest: no made-up case-study numbers; use "typical" ranges only when stated in the design.
+
+## Case studies and portfolio kit
+Follow `playbooks/case-study-and-portfolio.md`. Fill `templates/case-study.md` (short version about 150 words, long version about 500) with a "how measured" entry under every number, an empty testimonial slot, and the real-client permission box. Label demos "Demo project, synthetic data". Prepare the kit with `checklists/portfolio-kit.md`. Never invent testimonials, metrics or logos.
