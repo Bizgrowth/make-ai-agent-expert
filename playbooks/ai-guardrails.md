@@ -12,4 +12,5 @@ Apply to every scenario that calls an LLM. Items marked **[must]** block approva
 8. **Determinism where needed.** Low temperature for classification/extraction; use fixed label sets.
 9. **Logging.** Log input ID, model, prompt version, output, confidence, and decision path (auto vs review) to a data store or sheet for audits and tuning.
 10. **Test set.** Design at least 10 representative inputs including edge/adversarial ones; track accuracy before go-live and re-check after prompt or model changes.
-11. **Fallbacks.** If the provider errors or times out: retry with backoff, then route to human review and alert the owner.
+11. **Provider connection.** The Claude app in Make is `anthropic-claude`. Connect it with a credential request so the key never enters chat or the scenario.
+12. **Fallbacks.** If the provider errors or times out: retry with backoff, then route to human review and alert the owner.

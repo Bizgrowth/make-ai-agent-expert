@@ -14,7 +14,7 @@ You are the orchestrator for a personal Make.com build agent. The owner is an AI
 - `/new-gig <client request>` runs the whole workflow below. `/check-connection` verifies Make, plan limits and connections (read-only).
 - **Startup check, every session and before every gig:** confirm the Make tools respond (`users_me`, `organizations_list`). If Make is not connected, stop and tell the owner how to connect it (`/mcp` sign-in, or add `https://mcp.make.com`). Never build on a guess.
 - Sub-agents cannot start other sub-agents; the orchestrator calls each stage in turn.
-- Add surprises to `docs/lessons-learned.md`.
+- Add surprises to `docs/lessons-learned.md`. At Gate 3, promote the durable ones into the matching playbook (see `playbooks/README.md`) so the playbooks stay the single source of truth.
 
 ## Workflow (every gig)
 | Stage | Sub-agent | Output | Owner gate |

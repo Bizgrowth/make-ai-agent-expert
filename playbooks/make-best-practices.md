@@ -2,6 +2,13 @@
 
 Every scenario is reviewed against this list. Items marked **[must]** block approval.
 
+## Before you build (prerequisites)
+Added from gig lessons. Check these first; if any fail, stop and tell the owner. Do not improvise around a missing prerequisite.
+- **[must]** Confirm every app property, field and connection the design needs actually exists, using the live module field list. Custom properties (e.g. HubSpot) must be confirmed in the right account, on the right object, by internal name. If missing, stop.
+- **[must]** Verify module names with `app-modules_list` before designing or building. Names in docs often differ from the Make interface (Slack "Send a Message", Tools "Set variables", Data store "Add/replace a record").
+- Sub-agents can read a module's field list but cannot run modules or make raw API calls. Anything needing a live call goes to the owner or the main agent.
+- Check data-store behavior early (can it refuse to overwrite an existing key?) because dedupe design depends on it.
+
 ## Organization
 - **[must]** Name: `<CLIENT> | <Process> | <Trigger> → <Outcome> | vN`. One folder per client; labels: client slug, gig ID, status (`draft`, `qa`, `live`).
 - Name every module in plain English (e.g. "Find contact by email"), not the default.
@@ -34,6 +41,7 @@ Every scenario is reviewed against this list. Items marked **[must]** block appr
 
 ## Security
 - **[must]** No secrets in module fields, notes, or logs; use Make connections only.
+- API keys (e.g. Anthropic) go in through a credential request (`credential-requests_create`) or a Connection, never Make's "Keys" area and never chat. The owner pastes the key in Make's own form.
 - Least-privilege scopes on every connection.
 - Webhooks: use a secret/header check or IP allow-list where possible; never echo sensitive payloads into notifications.
 - Minimize personal data stored; set data-store retention.
