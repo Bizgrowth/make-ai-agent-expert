@@ -23,3 +23,4 @@ The agent stops at each gate and waits for an explicit "approved" from the owner
 - [ ] Client has connected their own accounts and approved go-live
 - [ ] Owner activates the scenario and watches the first live run
 - [ ] Support window and monitoring offer communicated
+- [ ] Lessons from this gig reviewed: durable ones promoted into the right playbook, and marked "promoted" in `docs/lessons-learned.md`

@@ -10,7 +10,7 @@ A personal Claude Code agent that designs, builds, reviews, tests and documents 
 ## Layout
 - `CLAUDE.md` — orchestrator rules and workflow
 - `.claude/agents/` — 7 specialist sub-agents (intake-brief, architect, builder, best-practice-reviewer, qa-tester, handoff-writer, template-showcase)
-- `playbooks/` — Make best practices, AI guardrails, pricing/scoping, pattern libraries
+- `playbooks/` — Make best practices, AI guardrails, pricing/scoping, pattern libraries (start with `playbooks/README.md`)
 - `templates/` — brief, process doc, test report, Loom script
 - `checklists/` — approval gates
 - `clients/` — per-client working files
