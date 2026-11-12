@@ -1,0 +1,626 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>Make Flow Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: a lecture-room whiteboard. Scenario rail on top, a big dotted flow canvas with transport controls, a side panel that explains each step, and an app-icon library at the foot. */
+:root {
+  --bg: #eceff6;
+  --panel: #ffffff;
+  --panel2: #f5f6fb;
+  --ink: #14172b;
+  --muted: #5a617b;
+  --line: #d3d9e8;
+  --accent: #6a3df0;
+  --accent-ink: #ffffff;
+  --accent-soft: #e9e3ff;
+  --good: #14825a;
+  --warn: #a96300;
+  --bad: #c73a49;
+  --edge: #8b93b0;
+  --dot: #cdd3e4;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0f1f; --panel: #151a31; --panel2: #1b2140; --ink: #eceffd; --muted: #9aa2c4;
+    --line: #2b3259; --accent: #9b7dff; --accent-ink: #0c0f1f; --accent-soft: #2a2457;
+    --good: #3fcf96; --warn: #f0b24a; --bad: #ff7b88; --edge: #6f78a0; --dot: #232a4d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c0f1f; --panel: #151a31; --panel2: #1b2140; --ink: #eceffd; --muted: #9aa2c4;
+  --line: #2b3259; --accent: #9b7dff; --accent-ink: #0c0f1f; --accent-soft: #2a2457;
+  --good: #3fcf96; --warn: #f0b24a; --bad: #ff7b88; --edge: #6f78a0; --dot: #232a4d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;
+  padding-block: 18px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+button, select { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible, .node:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app { max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+.brand { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.mark { width: 42px; height: 42px; border-radius: 12px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.brand h1 { font-size: 26px; line-height: 1.1; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.hbtn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+.hbtn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.rail { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.card { flex: 0 0 236px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; scroll-snap-align: start; }
+.card[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.card .nm { font-weight: 600; font-size: 13px; line-height: 1.3; min-height: 34px; }
+.icons { display: flex; gap: 4px; flex-wrap: wrap; }
+.dotico { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.dotico svg { width: 15px; height: 15px; }
+.meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; }
+.pill.on { color: var(--good); border-color: var(--good); }
+.pill.plan { color: var(--accent); border-color: var(--accent); }
+.pill.off { color: var(--muted); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.canvas-wrap, .side, .library { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.canvas-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.chead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.chead h2 { font-size: 20px; }
+.chead .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--panel2); border-radius: 10px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:hover { filter: brightness(1.05); }
+select { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; max-width: 100%; }
+label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
+
+.flow-box { background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px); background-size: 18px 18px; border: 1px solid var(--line); border-radius: 12px; background-color: var(--panel2); overflow: hidden; }
+svg#flow { display: block; width: 100%; height: auto; }
+.edge { fill: none; stroke: var(--edge); stroke-width: 2.4; stroke-linecap: round; }
+.edge.traveled { stroke: var(--accent); }
+.edge.live { stroke: var(--accent); stroke-width: 3.6; }
+#arrowhead path { fill: var(--edge); }
+.elabel rect { fill: var(--panel); stroke: var(--line); }
+.elabel text { fill: var(--muted); font: 500 11px var(--font-body); }
+.node { cursor: pointer; }
+.node .body { stroke: rgba(255,255,255,.22); stroke-width: 2; }
+.node .ring { fill: none; stroke: var(--accent); stroke-width: 3; opacity: 0; }
+.node.active .ring { opacity: 1; animation: pulse 1.1s ease-in-out infinite; }
+.node.dim { opacity: .55; }
+.node .lbl { fill: var(--ink); font: 600 12px var(--font-body); text-anchor: middle; }
+.node .tag { fill: var(--muted); font: 600 9.5px var(--font-body); letter-spacing: .08em; text-anchor: middle; }
+.node .badge circle { fill: var(--panel); stroke: var(--line); }
+.node .badge text { fill: var(--ink); font: 600 10px var(--font-mono); text-anchor: middle; dominant-baseline: central; }
+.node .done { opacity: 0; transition: opacity .2s; }
+.node.finished .done { opacity: 1; }
+.node .opsb { fill: var(--accent); font: 600 11px var(--font-mono); text-anchor: middle; opacity: 0; }
+.node.finished .opsb { opacity: 1; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+.node .ring { transform-box: fill-box; transform-origin: center; }
+#bundle rect { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
+#bundle text { fill: var(--accent-ink); font: 600 10px var(--font-mono); text-anchor: middle; dominant-baseline: central; }
+
+.meters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.meter { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.meter b { display: block; font: 600 20px var(--font-mono); font-variant-numeric: tabular-nums; }
+.meter span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.scrub { width: 100%; accent-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--panel2); border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+.chip[aria-current="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip.past { border-color: var(--accent); }
+.note { color: var(--muted); font-size: 12px; }
+
+.side { padding: 0; overflow: hidden; min-width: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tab { flex: 1; padding: 11px 8px; background: transparent; border: 0; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.pane { padding: 14px; display: none; flex-direction: column; gap: 12px; max-height: 760px; overflow: auto; }
+.pane.show { display: flex; }
+.phase-pill { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); width: fit-content; }
+.pane h3 { font-size: 18px; }
+.pane p { margin: 0; }
+pre { margin: 0; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: 12px/1.5 var(--font-mono); overflow: auto; max-height: 220px; white-space: pre-wrap; word-break: break-word; }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; font-size: 12px; }
+.log { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font: 12px var(--font-mono); color: var(--muted); }
+.log li b { color: var(--ink); font-weight: 500; }
+.sop { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; counter-reset: ph; }
+.sop li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel2); display: flex; flex-direction: column; gap: 3px; }
+.sop li[data-on="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); background: var(--panel); }
+.sop .t { font-weight: 600; }
+.sop .say { color: var(--muted); font-size: 12.5px; }
+.sop .pt { font-size: 12px; color: var(--accent); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 500; }
+.tbl { overflow-x: auto; }
+.chart text { fill: var(--muted); font: 11px var(--font-body); }
+.chart .bar { fill: var(--accent); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .val { fill: var(--ink); font: 600 11px var(--font-mono); }
+
+.library { padding: 14px; }
+.library h2 { font-size: 18px; margin-bottom: 10px; }
+.lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.lib div { display: flex; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+.lib .dotico { width: 34px; height: 34px; }
+.lib .dotico svg { width: 20px; height: 20px; }
+.presenter .rail, .presenter .library { display: none; }
+.presenter .stage { grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr); }
+@media (max-width: 980px) { .stage { grid-template-columns: minmax(0, 1fr); } .meters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pane { max-height: none; } }
+@media (prefers-reduced-motion: reduce) { .node.active .ring { animation: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="symbols"></defs></svg>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V7l4.2 5L12 7l3.8 5L20 7v11"/></svg></div>
+      <div>
+        <h1>Make Flow Studio</h1>
+        <p>Snapshot of My Team, pulled 2026-10-18 from the Make API. Animate any scenario to teach how Make runs it.</p>
+      </div>
+    </div>
+    <button class="hbtn" id="presenterBtn" aria-pressed="false">Presenter view</button>
+  </header>
+
+  <section class="rail" id="rail" aria-label="Scenarios"></section>
+
+  <main class="stage">
+    <section class="canvas-wrap">
+      <div class="chead">
+        <div>
+          <h2 id="scTitle"></h2>
+          <div class="sub" id="scSub"></div>
+        </div>
+        <div class="controls">
+          <select id="scriptSel" aria-label="Run to animate"></select>
+          <button class="btn primary" id="playBtn">Play</button>
+          <button class="btn" id="stepBtn">Step</button>
+          <button class="btn" id="resetBtn">Reset</button>
+          <select id="speedSel" aria-label="Speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select>
+          <label class="chk"><input type="checkbox" id="pauseEach"> Pause at each step</label>
+        </div>
+      </div>
+      <div class="flow-box"><svg id="flow" role="img" aria-label="Scenario flow diagram"></svg></div>
+      <div class="meters">
+        <div class="meter"><span>Operations</span><b id="mOps">0</b></div>
+        <div class="meter"><span>Credits</span><b id="mCred">0</b></div>
+        <div class="meter"><span>Run time</span><b id="mTime">0 ms</b></div>
+        <div class="meter"><span>Step</span><b id="mStep">0 / 0</b></div>
+      </div>
+      <input class="scrub" type="range" id="scrub" min="0" max="0" value="0" aria-label="Scrub through steps">
+      <div class="chips" id="chips"></div>
+      <div class="note" id="opsNote"></div>
+    </section>
+
+    <aside class="side">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="live" aria-selected="true">Live step</button>
+        <button class="tab" role="tab" data-tab="sop" aria-selected="false">SOP phases</button>
+        <button class="tab" role="tab" data-tab="runs" aria-selected="false">Real runs</button>
+      </div>
+      <div class="pane show" id="pane-live"></div>
+      <div class="pane" id="pane-sop"></div>
+      <div class="pane" id="pane-runs"></div>
+    </aside>
+  </main>
+
+  <section class="library">
+    <h2>App icon library</h2>
+    <div class="lib" id="lib"></div>
+    <p class="note" style="margin:10px 0 0">Icons are simplified drawings in each app's colour, made for this page. Official logos cannot load here, so swap in your own files when you need exact brand marks.</p>
+  </section>
+</div>
+
+<script>
+/* ---------- app icons ---------- */
+const APPS = {
+  webhook:{n:'Webhooks',c:'#9333ea'}, hubspot:{n:'HubSpot CRM',c:'#e8603f'}, gmail:{n:'Gmail',c:'#d93025'},
+  slack:{n:'Slack',c:'#6b2a73'}, sheets:{n:'Google Sheets',c:'#188a4a'}, notion:{n:'Notion',c:'#3a3a3a'},
+  openai:{n:'OpenAI',c:'#0f8f6f'}, claude:{n:'Anthropic Claude',c:'#b86d44'}, router:{n:'Router (flow control)',c:'#d86a0a'},
+  store:{n:'Data store',c:'#2f6fdb'}, json:{n:'JSON',c:'#0f8b8d'}, tools:{n:'Tools',c:'#5b6178'},
+  sub:{n:'Scenario inputs and outputs',c:'#6a3df0'}, respond:{n:'Webhook response',c:'#9333ea'}, stop:{n:'Stop / error path',c:'#c93a4a'},
+  human:{n:'Human review',c:'#b57900'}, filter:{n:'Filter',c:'#5b6178'}
+};
+const GLYPH = {
+  webhook:'<circle cx="6.5" cy="17" r="2.6"/><circle cx="17.5" cy="17" r="2.6"/><circle cx="12" cy="6.5" r="2.6"/><path d="M12 9.2l-4 5.6M9.1 17h5.8M12 9.2l4 5.6"/>',
+  hubspot:'<circle cx="11" cy="13" r="3.2"/><circle cx="18.5" cy="6" r="1.8"/><path d="M13.3 10.7L17.2 7.3M11 9.8V5.6M8.6 15.2L5.8 17.9"/><circle cx="11" cy="4.3" r="1.3"/><circle cx="4.8" cy="18.7" r="1.3"/>',
+  gmail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7.5l8 6 8-6"/>',
+  slack:'<path d="M9.5 4L8 20M16 4l-1.5 16M4 9.5h16M3.5 15h16"/>',
+  sheets:'<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M5 9.5h14M5 14.5h14M12 9.5v11"/>',
+  notion:'<rect x="4.5" y="4" width="15" height="16" rx="2.5"/><path d="M9 16.5v-9l6 9v-9"/>',
+  openai:'<path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/><circle cx="12" cy="12" r="2.4"/>',
+  claude:'<path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/>',
+  router:'<circle cx="5.5" cy="12" r="2"/><path d="M7.5 12h4M11.5 12L17 6.5M11.5 12L17 17.5M11.5 12h6"/><circle cx="18.7" cy="6" r="1.3"/><circle cx="19" cy="12" r="1.3"/><circle cx="18.7" cy="18" r="1.3"/>',
+  store:'<ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8v-11M5 12c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8"/>',
+  json:'<path d="M9 4.5C7 4.5 7 6 7 8s0 3-2.2 4C7 13 7 14 7 16s0 3.5 2 3.5M15 4.5c2 0 2 1.5 2 3.5s0 3 2.2 4c-2.2 1-2.2 2-2.2 4s0 3.5-2 3.5"/>',
+  tools:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3M6 6l2.1 2.1M15.9 15.9L18 18M6 18l2.1-2.1M15.9 8.1L18 6"/>',
+  sub:'<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/>',
+  respond:'<path d="M20 12H7.5M11.5 7.5L7 12l4.5 4.5"/>',
+  stop:'<circle cx="12" cy="12" r="8"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>',
+  human:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-4 3-6.2 7-6.2s7 2.2 7 6.2"/>',
+  filter:'<path d="M4 5.5h16l-6 7v6l-4-2v-4z"/>'
+};
+const SVG_ATTR = 'fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+document.getElementById('symbols').innerHTML = Object.keys(GLYPH).map(k => `<symbol id="g-${k}" viewBox="0 0 24 24"><g ${SVG_ATTR}>${GLYPH[k]}</g></symbol>`).join('');
+const ico = k => `<span class="dotico" style="background:${APPS[k].c}" title="${APPS[k].n}"><svg viewBox="0 0 24 24"><use href="#g-${k}"/></svg></span>`;
+
+/* ---------- SOP phases ---------- */
+const PHASES = [
+  {n:1,t:'Trigger fires',say:'Every run starts with one event: a webhook call, a schedule, or a watch on an app. Nothing happens until it fires.',pt:'Point at the first bubble on the left (the tag says TRIGGER).'},
+  {n:2,t:'Bundle created',say:'Make wraps the incoming data in a bundle. A bundle is one package of fields that travels along the line from module to module.',pt:'Point at the small purple card moving along the line.'},
+  {n:3,t:'Modules run',say:'Each app module takes the bundle, does one job in that app, and passes its result on. App module runs are what use operations.',pt:'Point at the +1 that appears under each finished module.'},
+  {n:4,t:'Filter and router',say:'Filters decide whether a bundle may continue. A router splits the flow into routes, so one scenario can handle several cases.',pt:'Point at the router and the labels on the lines leaving it.'},
+  {n:5,t:'Error handling',say:'Any module can have an error route: ignore, resume, retry later, roll back, or commit. This is where reliable builds differ from fragile ones.',pt:'Point at any stop bubble or the review route.'},
+  {n:6,t:'Response or return',say:'A webhook response answers the caller. A tool scenario returns its data to whoever called it.',pt:'Point at the last bubble.'},
+  {n:7,t:'Execution log',say:'Make writes down every run: status, duration, operations, credits and data moved. This is your proof when a client asks what happened.',pt:'Open the Real runs tab.'}
+];
+const PH = n => PHASES.find(p => p.n === n);
+
+/* ---------- scenarios (snapshot from Make, 2026-10-18) ---------- */
+const S = {};
+S.setup = {
+  id:'setup', name:'Setup – Create HubSpot Contact Property', status:'on', sched:'On demand (tool)', runs:6, vb:[960,330],
+  about:'A one-off helper that creates a HubSpot contact property. Your agent calls it as a tool. This is the only scenario with recorded runs, so it is the most frequent one to teach from.',
+  opsNote:'Measured: each real run was logged as 1 operation and 1 credit, which matches this animation (only the HubSpot call counts).',
+  nodes:[
+    {id:'a',app:'sub',kind:'trigger',label:'Start scenario\n(tool input)',x:150,y:150,ph:1,ms:40,ops:0,
+      does:'The caller (Claude or you) runs this scenario as a tool and passes one input, propertyJson: the definition of the property to create.',
+      data:{propertyJson:{name:'ai_lead_tier',label:'AI Lead Tier',type:'string',fieldType:'text',groupName:'contactinformation'}}},
+    {id:'b',app:'hubspot',kind:'module',label:'HubSpot\nMake an API Call',x:480,y:150,ph:3,ms:450,ops:1,
+      does:'Sends POST /crm/v3/properties/contacts to HubSpot using your saved HubSpot connection. This is the only step that uses an operation.',
+      data:{url:'/crm/v3/properties/contacts',method:'POST',statusCode:201,result:'property created'}},
+    {id:'c',app:'respond',kind:'module',label:'Return data',x:810,y:150,ph:6,ms:20,ops:0,
+      does:'Hands HubSpot\'s answer back to the caller as tool_output, so the agent can confirm the property exists.',
+      data:{tool_output:{statusCode:201,body:{name:'ai_lead_tier',archived:false}}}}
+  ],
+  edges:[{f:'a',t:'b',l:'propertyJson'},{f:'b',t:'c',l:'tool_output'}],
+  scripts:[{id:'one',name:'Create one property',steps:['a','b','c']}]
+};
+S.hub = {
+  id:'hub', name:'Showcase Hub – Lead, Inbox, Scorecard (router)', status:'on', sched:'Instant (webhook)', runs:0, vb:[960,470],
+  about:'One webhook, one router, three routes. It is the cleanest scenario for teaching how routing works. Route names are taken from the scenario title, so treat them as labels to confirm.',
+  opsNote:'Illustrative: 1 operation per app module. No runs are recorded for this scenario yet, so read real counts from the execution log after a test.',
+  nodes:[
+    {id:'w',app:'webhook',kind:'trigger',label:'Custom webhook',x:90,y:230,ph:1,ms:30,ops:1,does:'A form, site or another app posts JSON to this scenario\'s webhook URL. Make starts a run the moment it arrives.',data:{type:'lead',email:'sample@example.com'}},
+    {id:'r',app:'router',kind:'router',label:'Router',x:290,y:230,ph:4,ms:20,ops:0,does:'The router looks at the bundle and sends it down the route whose filter matches: lead, inbox or scorecard.',data:{route:'depends on the request'}},
+    {id:'hs',app:'hubspot',kind:'module',label:'HubSpot\nCreate/update contact',x:500,y:90,ph:3,ms:420,ops:1,does:'Creates the contact in HubSpot, or updates it if the email already exists.',data:{email:'sample@example.com',result:'contact saved'}},
+    {id:'g1',app:'gmail',kind:'module',label:'Gmail\nSend an email',x:680,y:90,ph:3,ms:380,ops:1,does:'Sends the follow-up email from the connected Gmail account.',data:{to:'sample@example.com',subject:'Thanks for reaching out'}},
+    {id:'s1',app:'respond',kind:'module',label:'Webhook\nresponse',x:860,y:90,ph:6,ms:20,ops:1,does:'Answers the caller so the form knows it worked.',data:{status:200,body:'accepted'}},
+    {id:'g2',app:'gmail',kind:'module',label:'Gmail\nSend an email',x:680,y:230,ph:3,ms:380,ops:1,does:'Sends the inbox-route email.',data:{to:'team@example.com'}},
+    {id:'s2',app:'respond',kind:'module',label:'Webhook\nresponse',x:860,y:230,ph:6,ms:20,ops:1,does:'Answers the caller.',data:{status:200}},
+    {id:'g3',app:'gmail',kind:'module',label:'Gmail\nSend an email',x:680,y:370,ph:3,ms:380,ops:1,does:'Sends the scorecard email.',data:{to:'owner@example.com'}},
+    {id:'s3',app:'respond',kind:'module',label:'Webhook\nresponse',x:860,y:370,ph:6,ms:20,ops:1,does:'Answers the caller.',data:{status:200}}
+  ],
+  edges:[{f:'w',t:'r'},{f:'r',t:'hs',l:'Lead'},{f:'hs',t:'g1'},{f:'g1',t:'s1'},{f:'r',t:'g2',l:'Inbox'},{f:'g2',t:'s2'},{f:'r',t:'g3',l:'Scorecard'},{f:'g3',t:'s3'}],
+  scripts:[{id:'lead',name:'Lead route',steps:['w','r','hs','g1','s1']},{id:'inbox',name:'Inbox route',steps:['w','r','g2','s2']},{id:'score',name:'Scorecard route',steps:['w','r','g3','s3']}]
+};
+S.sheets = {
+  id:'sheets', name:'Integration Webhooks, Google Sheets', status:'off', sched:'Instant (webhook)', runs:0, vb:[960,330],
+  about:'A webhook adds a row to a Google Sheet, then sends an email. A simple three-step pattern for teaching.',
+  opsNote:'Illustrative: 1 operation per module. Scenario is switched off and has no recorded runs.',
+  nodes:[
+    {id:'w',app:'webhook',kind:'trigger',label:'Custom webhook',x:150,y:150,ph:1,ms:30,ops:1,does:'Receives data from another tool.',data:{name:'Sample Lead',email:'sample@example.com'}},
+    {id:'sh',app:'sheets',kind:'module',label:'Google Sheets\nAdd a row',x:480,y:150,ph:3,ms:500,ops:1,does:'Writes the bundle fields into a new row.',data:{sheet:'Leads',row:'appended'}},
+    {id:'gm',app:'gmail',kind:'module',label:'Gmail\nSend an email',x:810,y:150,ph:3,ms:380,ops:1,does:'Emails a notification that the row was added.',data:{to:'owner@example.com'}}
+  ],
+  edges:[{f:'w',t:'sh'},{f:'sh',t:'gm'}],
+  scripts:[{id:'one',name:'Row added, email sent',steps:['w','sh','gm']}]
+};
+S.notion = {
+  id:'notion', name:'Send Notion items to ChatGPT and update your database', status:'off', sched:'Every 15 min', runs:0, vb:[960,330],
+  about:'A polling scenario: Make checks Notion on a schedule, asks OpenAI to process each new item, then writes the answer back.',
+  opsNote:'Illustrative: 1 operation per module run. Scenario is switched off and has no recorded runs.',
+  nodes:[
+    {id:'nw',app:'notion',kind:'trigger',label:'Notion\nWatch database items',x:150,y:150,ph:1,ms:300,ops:1,does:'Every 15 minutes Make checks the Notion database. Each new item becomes one bundle.',data:{item:'New page',title:'Draft idea'}},
+    {id:'ai',app:'openai',kind:'module',label:'OpenAI\nCreate a completion',x:480,y:150,ph:3,ms:1800,ops:1,does:'Sends the item text to OpenAI and gets text back.',data:{prompt:'Summarise this item',completion:'(model answer)'}},
+    {id:'nu',app:'notion',kind:'module',label:'Notion\nUpdate a database item',x:810,y:150,ph:3,ms:400,ops:1,does:'Writes the answer back to the same Notion item.',data:{field:'AI summary',result:'updated'}}
+  ],
+  edges:[{f:'nw',t:'ai'},{f:'ai',t:'nu'}],
+  scripts:[{id:'one',name:'One new item',steps:['nw','ai','nu']}]
+};
+S.triage = {
+  id:'triage', name:'Showcase 2 – Inbox Triage with Approval', status:'off', sched:'Instant (webhook)', runs:0, vb:[960,300],
+  about:'Only a webhook and a response are built so far. A good starting point to extend live while teaching.',
+  opsNote:'Illustrative. Switched off, no recorded runs.',
+  nodes:[
+    {id:'w',app:'webhook',kind:'trigger',label:'Custom webhook',x:280,y:130,ph:1,ms:30,ops:1,does:'Receives the email to triage.',data:{from:'client@example.com',subject:'Quote request'}},
+    {id:'r',app:'respond',kind:'module',label:'Webhook response',x:680,y:130,ph:6,ms:20,ops:1,does:'Answers the caller.',data:{status:200}}
+  ],
+  edges:[{f:'w',t:'r'}], scripts:[{id:'one',name:'Basic request',steps:['w','r']}]
+};
+S.score = {
+  id:'score', name:'Showcase 3 – Weekly Ops Scorecard', status:'off', sched:'Instant (webhook)', runs:0, vb:[960,300],
+  about:'Same skeleton as Showcase 2: webhook in, response out.',
+  opsNote:'Illustrative. Switched off, no recorded runs.',
+  nodes:[
+    {id:'w',app:'webhook',kind:'trigger',label:'Custom webhook',x:280,y:130,ph:1,ms:30,ops:1,does:'Receives the weekly numbers.',data:{week:'2026-W42',leads:12}},
+    {id:'r',app:'respond',kind:'module',label:'Webhook response',x:680,y:130,ph:6,ms:20,ops:1,does:'Answers the caller.',data:{status:200}}
+  ],
+  edges:[{f:'w',t:'r'}], scripts:[{id:'one',name:'Basic request',steps:['w','r']}]
+};
+S.lead = {
+  id:'lead', name:'AI Lead Qualifier (planned design)', status:'plan', sched:'Instant (webhook)', runs:0, vb:[1220,470],
+  about:'The approved design, not built yet (build is on hold while HubSpot properties are finished). It teaches filters, AI steps, routing and a human review path in one flow.',
+  opsNote:'Estimate from the approved design (about 7 to 10 operations per lead). Real totals come from testing.',
+  nodes:[
+    {id:'w',app:'webhook',kind:'trigger',label:'Lead form\nwebhook',x:70,y:200,ph:1,ms:30,ops:1,does:'The website form posts the lead to the scenario with a secret key. Make starts a run.',data:{name:'Sample Lead',email:'sample@example.com',company:'Acme Co',message:'We need help automating onboarding'}},
+    {id:'v',app:'tools',kind:'module',label:'Clean +\nvalidate',x:190,y:200,ph:3,ms:40,ops:1,does:'Trims text, lowercases the email, and checks the required fields and consent.',data:{email:'sample@example.com',consent:true,valid:true}},
+    {id:'c',app:'store',kind:'module',label:'Claim lead\n(duplicate log)',x:310,y:200,ph:3,ms:120,ops:1,does:'Writes the email into a log first. If it is already there, this lead is a duplicate and the run stops.',data:{key:'sample@example.com',claimed:true}},
+    {id:'dup',app:'stop',kind:'stop',label:'Duplicate\nstop',x:310,y:370,ph:5,ms:10,ops:0,does:'Error-handling path: nothing else runs, so no second task or alert is created.',data:{reason:'already seen',action:'stopped'}},
+    {id:'a',app:'claude',kind:'module',label:'Claude\nscores lead',x:430,y:200,ph:3,ms:2200,ops:1,does:'Asks Claude to score five criteria and answer in JSON with a confidence value. Your own Anthropic key pays for this call.',data:{score:78,confidence:0.86,reason:'Budget and timeline stated'}},
+    {id:'p',app:'json',kind:'module',label:'Parse +\ncheck answer',x:550,y:200,ph:3,ms:30,ops:1,does:'Parses the JSON, checks it, and works out hot, warm or cold itself from the score (hot 70+, warm 40 to 69, cold below 40).',data:{tier:'hot',valid:true}},
+    {id:'h',app:'hubspot',kind:'module',label:'Save contact\n(DEMO tag)',x:670,y:200,ph:3,ms:450,ops:1,does:'Creates or updates the HubSpot contact and tags it as a demo record.',data:{demo_record:true,ai_lead_score:78,ai_lead_tier:'hot'}},
+    {id:'rt',app:'router',kind:'router',label:'Router',x:780,y:200,ph:4,ms:20,ops:0,does:'Splits by tier and confidence: hot, needs review, or warm/cold.',data:{tier:'hot'}},
+    {id:'th',app:'hubspot',kind:'module',label:'Create task\n(follow up)',x:950,y:80,ph:3,ms:420,ops:1,does:'Creates a follow-up task for hot leads.',data:{task:'Call Sample Lead',due:'today'}},
+    {id:'sl',app:'slack',kind:'module',label:'Slack\n#leads alert',x:1100,y:80,ph:3,ms:300,ops:1,does:'Posts the alert to #leads so the owner sees it within seconds.',data:{channel:'#leads',text:'Hot lead: Sample Lead (78)'}},
+    {id:'sr',app:'slack',kind:'module',label:'Slack\nreview message',x:950,y:200,ph:5,ms:300,ops:1,does:'Human-review path: low confidence or a failed check goes to a person instead of acting automatically.',data:{channel:'#leads',text:'Please review: confidence 0.52'}},
+    {id:'lg',app:'store',kind:'module',label:'Update\nlog row',x:950,y:330,ph:3,ms:120,ops:1,does:'Warm and cold leads are recorded quietly with no alert.',data:{tier:'warm',alert:false}}
+  ],
+  edges:[{f:'w',t:'v'},{f:'v',t:'c'},{f:'c',t:'dup',l:'duplicate'},{f:'c',t:'a'},{f:'a',t:'p'},{f:'p',t:'h'},{f:'h',t:'rt'},{f:'rt',t:'th',l:'Hot'},{f:'th',t:'sl'},{f:'rt',t:'sr',l:'Review'},{f:'rt',t:'lg',l:'Warm/cold'}],
+  scripts:[
+    {id:'hot',name:'Hot lead',steps:['w','v','c','a','p','h','rt','th','sl']},
+    {id:'warm',name:'Warm lead (quiet)',steps:['w','v','c','a','p','h','rt','lg']},
+    {id:'review',name:'Unsure answer → human review',steps:['w','v','c','a','p','h','rt','sr']},
+    {id:'dup',name:'Duplicate lead (stopped)',steps:['w','v','c','dup']}
+  ]
+};
+const ORDER = ['setup','hub','lead','sheets','notion','triage','score'];
+
+/* real executions of "Setup – Create HubSpot Contact Property" (Make executions_list, oldest first) */
+const RUNS = [
+  {t:'2026-10-01 20:35:54',ms:485,ops:1,cc:100,tr:4678,id:'e3cff516'},
+  {t:'2026-10-01 20:35:58',ms:572,ops:1,cc:100,tr:4430,id:'9f58364a'},
+  {t:'2026-10-01 20:36:02',ms:610,ops:1,cc:100,tr:4102,id:'8689ad54'},
+  {t:'2026-10-01 20:36:06',ms:406,ops:1,cc:100,tr:4154,id:'f355a16d'},
+  {t:'2026-10-18 00:59:48',ms:630,ops:1,cc:100,tr:4290,id:'488be5e9'},
+  {t:'2026-10-18 00:59:50',ms:450,ops:1,cc:100,tr:4345,id:'850fff02'}
+];
+
+/* ---------- state ---------- */
+const $ = s => document.querySelector(s);
+const st = {sc:null, script:null, step:-1, token:0, running:false, paused:false, nextResolve:null, forceStep:false};
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const speed = () => parseFloat($('#speedSel').value) * (reduced ? 4 : 1);
+const nodeOf = id => st.sc.nodes.find(n => n.id === id);
+const el = (tag, attrs = {}, html = '') => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ---------- rail ---------- */
+function renderRail() {
+  $('#rail').innerHTML = ORDER.map(id => {
+    const s = S[id], apps = [...new Set(s.nodes.map(n => n.app))].filter(a => !['respond','stop'].includes(a));
+    const pill = s.status === 'on' ? '<span class="pill on">Active</span>' : s.status === 'plan' ? '<span class="pill plan">Planned</span>' : '<span class="pill off">Off</span>';
+    return `<button class="card" data-id="${id}" aria-current="${st.sc && st.sc.id === id}">
+      <span class="nm">${esc(s.name)}</span><span class="icons">${apps.map(ico).join('')}</span>
+      <span class="meta"><span>${s.runs} recorded run${s.runs === 1 ? '' : 's'} · ${esc(s.sched)}</span>${pill}</span></button>`;
+  }).join('');
+  document.querySelectorAll('.card').forEach(c => c.onclick = () => loadScenario(c.dataset.id));
+}
+
+/* ---------- flow drawing ---------- */
+function edgePath(a, b) {
+  const x1 = a.x + 32, y1 = a.y, x2 = b.x - 32, y2 = b.y, mx = (x1 + x2) / 2;
+  if (b.x <= a.x) { const sy = b.y > a.y ? a.y + 32 : a.y - 32; return `M ${a.x} ${sy} L ${b.x} ${b.y + (b.y > a.y ? -34 : 34)}`; }
+  return y1 === y2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
+function drawFlow() {
+  const sc = st.sc, svg = $('#flow');
+  svg.setAttribute('viewBox', `0 0 ${sc.vb[0]} ${sc.vb[1]}`);
+  svg.innerHTML = '<defs><marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>';
+  const gE = el('g'), gL = el('g'), gN = el('g');
+  sc.edges.forEach(e => {
+    const a = nodeOf(e.f), b = nodeOf(e.t);
+    const p = el('path', {class:'edge', id:`e-${e.f}-${e.t}`, d:edgePath(a, b), 'marker-end':'url(#arrowhead)'});
+    gE.appendChild(p);
+  });
+  svg.appendChild(gE);
+  sc.edges.forEach(e => {
+    if (!e.l) return;
+    const p = svg.querySelector(`#e-${e.f}-${e.t}`), pt = p.getPointAtLength(p.getTotalLength() * (Math.abs(nodeOf(e.t).y - nodeOf(e.f).y) > 60 ? 0.6 : 0.5)), w = e.l.length * 6.4 + 16;
+    gL.appendChild(el('g', {class:'elabel', transform:`translate(${pt.x},${pt.y})`}, `<rect x="${-w/2}" y="-11" width="${w}" height="22" rx="11"/><text text-anchor="middle" dominant-baseline="central">${esc(e.l)}</text>`));
+  });
+  svg.appendChild(gL);
+  sc.nodes.forEach((n, i) => {
+    const lines = n.label.split('\n'), tag = n.kind === 'trigger' ? '<text class="tag" y="-44">TRIGGER</text>' : '';
+    const g = el('g', {class:'node', 'data-id':n.id, tabindex:'0', transform:`translate(${n.x},${n.y})`, role:'button', 'aria-label':`${n.label.replace('\n',' ')}: ${APPS[n.app].n}`},
+      `<circle class="ring" r="40"/><circle class="body" r="31" fill="${APPS[n.app].c}"/>
+       <use href="#g-${n.app}" x="-15" y="-15" width="30" height="30"/>${tag}
+       <g class="badge" transform="translate(23,-23)"><circle r="10"/><text>${i + 1}</text></g>
+       <g class="done" transform="translate(-23,-23)"><circle r="9" fill="var(--good)"/><path d="M-4 0l3 3 5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+       ${lines.map((l, k) => `<text class="lbl" y="${52 + k * 14}">${esc(l)}</text>`).join('')}
+       <text class="opsb" y="${52 + lines.length * 14 + 4}">${n.ops ? '+' + n.ops + ' op' : 'no op'}</text>`);
+    g.onclick = () => { const k = st.script.steps.indexOf(n.id); if (k >= 0) showStep(k); };
+    g.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); g.onclick(); } };
+    gN.appendChild(g);
+  });
+  svg.appendChild(gN);
+  svg.appendChild(el('g', {id:'bundle', opacity:'0'}, '<rect x="-14" y="-10" width="28" height="20" rx="6"/><text>{ }</text>'));
+}
+
+/* ---------- panels ---------- */
+function stepData(i) { const n = nodeOf(st.script.steps[i]); return n; }
+function renderLive(i, done) {
+  const pane = $('#pane-live'), sc = st.sc;
+  if (i < 0) {
+    pane.innerHTML = `<span class="phase-pill">${esc(sc.sched)}</span><h3>${esc(sc.name)}</h3><p>${esc(sc.about)}</p>
+      <p class="note">Press <b>Play</b> to watch a run, <b>Step</b> to advance one module at a time, or click any bubble. Change the run in the menu above the flow.</p>`;
+    return;
+  }
+  const n = stepData(i), p = PH(n.ph), total = st.script.steps.length;
+  const log = st.script.steps.slice(0, i + 1).map((id, k) => { const m = nodeOf(id); return `<li><b>${k + 1}.</b> ${esc(m.label.replace('\n', ' '))} ${m.ops ? '→ +' + m.ops + ' op' : '→ no op'}</li>`; }).join('');
+  const fin = (done || i === total - 1) && sc.id === 'setup' ? `<p><b>Run complete.</b> Make logs it as SUCCESS, 1 operation, 1 credit, about 450 to 630 ms. See the Real runs tab for the six recorded runs.</p>` : (i === total - 1 ? '<p><b>Run complete.</b> Make would now write this run to the execution log.</p>' : '');
+  pane.innerHTML = `<span class="phase-pill">Phase ${p.n} · ${esc(p.t)}</span>
+    <h3>${esc(n.label.replace('\n', ' '))}</h3>
+    <div class="stats"><span class="stat">${esc(APPS[n.app].n)}</span><span class="stat">${n.ops ? '+' + n.ops + ' operation' : 'no operation'}</span><span class="stat">~${n.ms} ms</span><span class="stat">step ${i + 1} of ${total}</span></div>
+    <p>${esc(n.does)}</p>
+    <div><div class="note" style="margin-bottom:4px">Bundle at this step (sample data)</div><pre>${esc(JSON.stringify(n.data, null, 2))}</pre></div>
+    ${fin}<div><div class="note" style="margin-bottom:4px">Run so far</div><ol class="log" style="list-style:none">${log}</ol></div>`;
+  renderSop(n.ph);
+}
+function renderSop(active) {
+  const sc = st.sc, seq = (st.script ? st.script.steps : []).map(id => nodeOf(id));
+  $('#pane-sop').innerHTML = `<p class="note">How any Make scenario run works, in teaching order. The phase being animated is highlighted.</p>
+    <ul class="sop">${PHASES.map(p => `<li data-on="${active === p.n}"><span class="t">${p.n}. ${esc(p.t)}</span><span class="say">Say: ${esc(p.say)}</span><span class="pt">${esc(p.pt)}</span></li>`).join('')}</ul>
+    <h3 style="font-size:15px">This run, phase by phase</h3>
+    <div class="tbl"><table><thead><tr><th>#</th><th>Phase</th><th>Module</th><th>Ops</th></tr></thead><tbody>
+    ${seq.map((n, k) => `<tr><td>${k + 1}</td><td>${n.ph}. ${esc(PH(n.ph).t)}</td><td>${esc(n.label.replace('\n', ' '))}</td><td>${n.ops}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">${esc(sc.opsNote)}</p>`;
+}
+function renderRuns() {
+  const max = 700, W = 560, H = 230, L = 44, B = 40, T = 12, bw = 48, gap = (W - L - 10 - bw * RUNS.length) / (RUNS.length - 1);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  const grid = [0, 200, 400, 600].map(v => `<line class="grid" x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+  const bars = RUNS.map((r, i) => { const x = L + 8 + i * (bw + gap); return `<g><rect class="bar" x="${x}" y="${y(r.ms)}" width="${bw}" height="${H - B - y(r.ms)}" rx="4"><title>${r.t}: ${r.ms} ms, ${r.ops} operation, success</title></rect>
+    <text class="val" x="${x + bw / 2}" y="${y(r.ms) - 5}" text-anchor="middle">${r.ms}</text><text x="${x + bw / 2}" y="${H - B + 16}" text-anchor="middle">#${i + 1}</text><text x="${x + bw / 2}" y="${H - B + 30}" text-anchor="middle">${r.t.slice(5, 10)}</text></g>`; }).join('');
+  $('#pane-runs').innerHTML = `<h3>Setup – Create HubSpot Contact Property</h3>
+    <p class="note">Source: Make executions_list for scenario 6476840, pulled 2026-10-18. These are the only recorded runs in My Team, all successful. The four Oct 1 runs are consistent with the four older ai_* properties in HubSpot (an inference, not something Make states).</p>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Duration in milliseconds of each recorded run"><text x="${L}" y="10" style="font-weight:600">Duration per run (ms)</text>${grid}${bars}</svg>
+    <div class="stats"><span class="stat">6 runs</span><span class="stat">6 operations</span><span class="stat">6 credits of 10,000 (0.06%)</span><span class="stat">~4.3 KB moved per run</span></div>
+    <div class="tbl"><table><thead><tr><th>#</th><th>Started</th><th>ms</th><th>Ops</th><th>Credits</th><th>Status</th></tr></thead><tbody>
+    ${RUNS.map((r, i) => `<tr><td>${i + 1}</td><td>${r.t}</td><td>${r.ms}</td><td>${r.ops}</td><td>${r.cc / 100}</td><td style="color:var(--good)">Success</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ---------- step state ---------- */
+function updateMeters(i) {
+  let ops = 0, ms = 0;
+  for (let k = 0; k <= i; k++) { const n = stepData(k); ops += n.ops; ms += n.ms; }
+  $('#mOps').textContent = ops; $('#mCred').textContent = ops; $('#mTime').textContent = ms + ' ms';
+  $('#mStep').textContent = `${i + 1} / ${st.script.steps.length}`;
+}
+function markVisual(i, activeToo) {
+  const steps = st.script.steps;
+  document.querySelectorAll('.node').forEach(g => g.classList.remove('active', 'finished'));
+  document.querySelectorAll('.edge').forEach(e => e.classList.remove('traveled', 'live'));
+  document.querySelectorAll('.node').forEach(g => g.classList.toggle('dim', !steps.includes(g.dataset.id)));
+  for (let k = 0; k <= i; k++) {
+    const g = document.querySelector(`.node[data-id="${steps[k]}"]`);
+    if (k < i || !activeToo) g.classList.add('finished');
+    if (k === i && activeToo) g.classList.add('active');
+    if (k > 0) { const e = document.getElementById(`e-${steps[k - 1]}-${steps[k]}`); if (e) e.classList.add('traveled'); }
+  }
+  document.querySelectorAll('.chip').forEach((c, k) => { c.setAttribute('aria-current', k === i); c.classList.toggle('past', k < i); });
+  $('#scrub').value = Math.max(i, 0);
+}
+function showStep(i) {
+  cancelRun();
+  if (i < 0) { resetView(); return; }
+  markVisual(i, true); updateMeters(i); renderLive(i, false);
+  const b = $('#bundle'); if (b) b.setAttribute('opacity', '0');
+}
+function resetView() {
+  cancelRun();
+  st.step = -1;
+  document.querySelectorAll('.node').forEach(g => { g.classList.remove('active', 'finished'); g.classList.toggle('dim', !st.script.steps.includes(g.dataset.id)); });
+  document.querySelectorAll('.edge').forEach(e => e.classList.remove('traveled', 'live'));
+  document.querySelectorAll('.chip').forEach(c => { c.setAttribute('aria-current', 'false'); c.classList.remove('past'); });
+  const b = $('#bundle'); if (b) b.setAttribute('opacity', '0');
+  $('#mOps').textContent = '0'; $('#mCred').textContent = '0'; $('#mTime').textContent = '0 ms'; $('#mStep').textContent = `0 / ${st.script.steps.length}`;
+  $('#scrub').value = 0; renderLive(-1); renderSop(0); setPlayLabel();
+}
+
+/* ---------- animation engine ---------- */
+function cancelRun() { st.token++; st.running = false; st.paused = false; if (st.nextResolve) { st.nextResolve(false); st.nextResolve = null; } setPlayLabel(); }
+function setPlayLabel() { $('#playBtn').textContent = st.running ? (st.paused ? 'Resume' : 'Pause') : 'Play'; }
+function tween(ms, fn, token) {
+  return new Promise(res => {
+    let acc = 0, last = performance.now();
+    const frame = now => {
+      if (token !== st.token) { res(false); return; }
+      const dt = now - last; last = now;
+      if (!st.paused) acc += dt * speed();
+      fn(Math.min(1, acc / ms));
+      if (acc >= ms) res(true); else requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+async function runFrom(start, stepMode) {
+  const token = ++st.token, steps = st.script.steps;
+  st.running = true; st.paused = false; setPlayLabel();
+  const bundle = $('#bundle');
+  for (let i = start; i < steps.length; i++) {
+    if (i > 0) {
+      const path = document.getElementById(`e-${steps[i - 1]}-${steps[i]}`), len = path.getTotalLength();
+      path.classList.add('live'); bundle.setAttribute('opacity', '1');
+      markVisual(i - 1, false);
+      const ok = await tween(750, t => { const p = path.getPointAtLength(ease(t) * len); bundle.setAttribute('transform', `translate(${p.x},${p.y})`); }, token);
+      if (!ok) return;
+    } else {
+      const n = stepData(0); bundle.setAttribute('transform', `translate(${n.x},${n.y - 46})`); bundle.setAttribute('opacity', '1');
+    }
+    st.step = i; markVisual(i, true); updateMeters(i); renderLive(i, false);
+    const dur = Math.max(650, Math.min(1500, stepData(i).ms * 0.7 + 450));
+    if (!(await tween(dur, () => {}, token))) return;
+    if (stepMode && i < steps.length - 1) {
+      const go = await new Promise(r => { st.nextResolve = r; st.paused = false; setPlayLabel(); });
+      st.nextResolve = null; if (!go || token !== st.token) return;
+    }
+  }
+  markVisual(steps.length - 1, false); document.getElementById(`e-${steps[steps.length - 2]}-${steps[steps.length - 1]}`)?.classList.remove('live');
+  bundle.setAttribute('opacity', '0'); renderLive(steps.length - 1, true);
+  st.running = false; setPlayLabel();
+}
+
+/* ---------- loading ---------- */
+function loadScenario(id) {
+  cancelRun(); st.sc = S[id];
+  $('#scTitle').textContent = st.sc.name;
+  $('#scSub').textContent = `${st.sc.nodes.length} modules · ${st.sc.sched} · ${st.sc.status === 'plan' ? 'planned design, not built' : st.sc.status === 'on' ? 'active in Make' : 'switched off in Make'}`;
+  $('#scriptSel').innerHTML = st.sc.scripts.map((s, i) => `<option value="${i}">${esc(s.name)}</option>`).join('');
+  $('#opsNote').textContent = st.sc.opsNote;
+  document.querySelectorAll('.card').forEach(c => c.setAttribute('aria-current', c.dataset.id === id));
+  drawFlow(); loadScript(0);
+}
+function loadScript(i) {
+  cancelRun(); st.script = st.sc.scripts[i];
+  $('#scrub').max = st.script.steps.length - 1;
+  $('#chips').innerHTML = st.script.steps.map((id, k) => { const n = nodeOf(id); return `<button class="chip" data-k="${k}" aria-current="false">${k + 1}. ${esc(n.label.split('\n')[0])}</button>`; }).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => showStep(parseInt(c.dataset.k)));
+  resetView();
+}
+
+/* ---------- wiring ---------- */
+$('#playBtn').onclick = () => {
+  if (st.running) { st.paused = !st.paused; setPlayLabel(); if (st.nextResolve) { st.nextResolve(true); } return; }
+  resetView(); runFrom(0, $('#pauseEach').checked);
+};
+$('#stepBtn').onclick = () => {
+  if (st.running && st.nextResolve) { st.nextResolve(true); return; }
+  if (st.running) { return; }
+  const nxt = Math.min(st.step + 1, st.script.steps.length - 1);
+  if (st.step < 0) { resetView(); runFrom(0, true); return; }
+  showStep(nxt); st.step = nxt;
+};
+$('#resetBtn').onclick = resetView;
+$('#scriptSel').onchange = e => loadScript(parseInt(e.target.value));
+$('#scrub').oninput = e => { const k = parseInt(e.target.value); st.step = k; showStep(k); };
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('show', p.id === 'pane-' + t.dataset.tab));
+});
+$('#presenterBtn').onclick = e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', on); $('#app').classList.toggle('presenter', on); };
+document.addEventListener('keydown', ev => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(ev.target.tagName) || ev.target.closest('.node')) return;
+  if (ev.key === ' ') { ev.preventDefault(); $('#playBtn').click(); }
+  if (ev.key === 'ArrowRight') $('#stepBtn').click();
+  if (ev.key === 'r' || ev.key === 'R') resetView();
+});
+$('#lib').innerHTML = Object.keys(APPS).map(k => `<div>${ico(k)}<span>${esc(APPS[k].n)}</span></div>`).join('');
+renderRail(); renderRuns(); loadScenario('setup');
+</script>
+</body></html>
